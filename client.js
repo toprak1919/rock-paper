@@ -51,7 +51,17 @@ class RPSGame {
             glitchOverlay: document.getElementById('glitch-overlay'),
             matrixCanvas: document.getElementById('matrix-canvas'),
             energyParticles: document.getElementById('energy-particles'),
-            cursorTrail: document.getElementById('cursor-trail')
+            cursorTrail: document.getElementById('cursor-trail'),
+            powerupSelection: document.getElementById('powerup-selection'),
+            activePowerups: document.getElementById('active-powerups'),
+            myActivePowerup: document.getElementById('my-active-powerup'),
+            player1Powerups: document.getElementById('player1-powerups'),
+            player2Powerups: document.getElementById('player2-powerups'),
+            themeSelector: document.getElementById('theme-selector'),
+            specialRound: document.getElementById('special-round'),
+            specialRoundTitle: document.getElementById('special-round-title'),
+            specialRoundDesc: document.getElementById('special-round-desc'),
+            choiceHeader: document.getElementById('choice-header')
         };
         
         this.countdownTimer = null;
@@ -69,6 +79,15 @@ class RPSGame {
             currentStreak: 0,
             maxStreak: 0
         };
+        this.powerups = {
+            available: 0,
+            active: null,
+            earned: 0
+        };
+        this.theme = 'default';
+        this.roundCount = 0;
+        this.specialRoundActive = false;
+        this.unlockedThemes = ['default'];
         
         this.choiceEmojis = {
             rock: '🪨',
@@ -218,15 +237,22 @@ class RPSGame {
     }
     
     handleNewRound(data) {
+        this.roundCount++;
         this.updateStatus(data.message);
         if (data.scores) {
             this.scores = data.scores;
             this.updateScoreboard();
         }
-        this.resetChoices();
-        this.hideGameResult();
-        this.enableChoiceButtons();
-        this.startCountdown();
+        
+        // Check for special round
+        if (this.roundCount % 5 === 0) {
+            this.startSpecialRound();
+        } else {
+            this.resetChoices();
+            this.hideGameResult();
+            this.enableChoiceButtons();
+            this.startCountdown();
+        }
     }
     
     handleNewGame(data) {
@@ -291,6 +317,36 @@ class RPSGame {
         this.elements.chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.sendChatMessage();
+            }
+        });
+        
+        // Power-up selection
+        document.querySelectorAll('.powerup-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const powerupType = e.currentTarget.dataset.powerup;
+                this.selectPowerup(powerupType);
+            });
+        });
+        
+        // Theme selection
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const theme = e.currentTarget.dataset.theme;
+                this.selectTheme(theme);
+            });
+        });
+        
+        // Interactive effects
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) {
+                this.createClickEffect(e.clientX, e.clientY);
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && this.countdownTimer) {
+                this.createEnergyBoost();
+                e.preventDefault();
             }
         });
     }
@@ -591,7 +647,16 @@ class RPSGame {
             this.stats.currentStreak++;
             this.stats.maxStreak = Math.max(this.stats.maxStreak, this.stats.currentStreak);
             
-            // Check achievements
+            // Earn power-ups every 3 wins
+            if (this.stats.currentStreak % 3 === 0) {
+                this.powerups.available++;
+                this.powerups.earned++;
+                this.showPowerupEarned();
+            }
+            
+            // Check achievements and unlocks
+            this.checkUnlocks();
+            
             if (!this.achievements.firstWin && this.stats.roundsWon === 1) {
                 this.achievements.firstWin = true;
                 this.showAchievement('First Victory!', '🏆');
@@ -611,6 +676,7 @@ class RPSGame {
         }
         
         this.saveStats();
+        this.updatePowerupDisplay();
     }
     
     showAchievement(title, emoji) {
@@ -642,6 +708,9 @@ class RPSGame {
     loadStats() {
         const savedStats = localStorage.getItem('rps-stats');
         const savedAchievements = localStorage.getItem('rps-achievements');
+        const savedPowerups = localStorage.getItem('rps-powerups');
+        const savedTheme = localStorage.getItem('rps-theme');
+        const savedUnlocks = localStorage.getItem('rps-unlocks');
         
         if (savedStats) {
             this.stats = { ...this.stats, ...JSON.parse(savedStats) };
@@ -650,11 +719,27 @@ class RPSGame {
         if (savedAchievements) {
             this.achievements = { ...this.achievements, ...JSON.parse(savedAchievements) };
         }
+        
+        if (savedPowerups) {
+            this.powerups = { ...this.powerups, ...JSON.parse(savedPowerups) };
+        }
+        
+        if (savedTheme) {
+            this.theme = savedTheme;
+            this.selectTheme(this.theme);
+        }
+        
+        if (savedUnlocks) {
+            this.unlockedThemes = JSON.parse(savedUnlocks);
+        }
     }
     
     saveStats() {
         localStorage.setItem('rps-stats', JSON.stringify(this.stats));
         localStorage.setItem('rps-achievements', JSON.stringify(this.achievements));
+        localStorage.setItem('rps-powerups', JSON.stringify(this.powerups));
+        localStorage.setItem('rps-theme', this.theme);
+        localStorage.setItem('rps-unlocks', JSON.stringify(this.unlockedThemes));
     }
     
     // 🎭 EPIC BATTLE SEQUENCE 🎭
@@ -928,6 +1013,18 @@ class RPSGame {
             dot.style.left = mouseX + 'px';
             dot.style.top = mouseY + 'px';
             
+            // Theme-based cursor colors
+            if (this.theme === 'fire') {
+                dot.style.background = '#ff6b35';
+                dot.style.boxShadow = '0 0 10px #ff6b35';
+            } else if (this.theme === 'ice') {
+                dot.style.background = '#00d2ff';
+                dot.style.boxShadow = '0 0 10px #00d2ff';
+            } else if (this.theme === 'electric') {
+                dot.style.background = '#ffd700';
+                dot.style.boxShadow = '0 0 10px #ffd700';
+            }
+            
             this.elements.cursorTrail.appendChild(dot);
             
             setTimeout(() => {
@@ -936,6 +1033,204 @@ class RPSGame {
                 }
             }, 800);
         });
+    }
+    
+    // 🎮 POWER-UP SYSTEM 🎮
+    showPowerupEarned() {
+        this.showAchievement('Power-up Earned!', '⚡');
+        this.playEpicSound('victory');
+        
+        if (this.powerups.available === 1) {
+            setTimeout(() => {
+                this.elements.powerupSelection.style.display = 'block';
+            }, 2000);
+        }
+    }
+    
+    selectPowerup(type) {
+        if (this.powerups.available <= 0) return;
+        
+        this.powerups.active = type;
+        this.powerups.available--;
+        this.elements.powerupSelection.style.display = 'none';
+        this.updatePowerupDisplay();
+        this.applyPowerupVisuals(type);
+        this.playEpicSound('charge');
+        
+        this.showAchievement(`Power-up Active!`, this.getPowerupIcon(type));
+    }
+    
+    getPowerupIcon(type) {
+        const icons = {
+            shield: '🛡️',
+            lightning: '⚡',
+            double: '🔥',
+            crystal: '🔮',
+            time: '⏰'
+        };
+        return icons[type] || '⚡';
+    }
+    
+    applyPowerupVisuals(type) {
+        // Add aura to all choice buttons
+        document.querySelectorAll('.powerup-aura').forEach(aura => {
+            aura.className = `powerup-aura ${type}`;
+            aura.style.opacity = '1';
+        });
+        
+        // Show active power-up
+        this.elements.activePowerups.style.display = 'block';
+        this.elements.myActivePowerup.innerHTML = `
+            <span>${this.getPowerupIcon(type)}</span>
+            <span>${type.toUpperCase()} ACTIVE</span>
+        `;
+    }
+    
+    updatePowerupDisplay() {
+        // Update power-up count display for current player
+        const myDisplay = this.playerId === 'player1' ? 
+            this.elements.player1Powerups : this.elements.player2Powerups;
+        
+        myDisplay.innerHTML = '';
+        for (let i = 0; i < this.powerups.available; i++) {
+            const icon = document.createElement('div');
+            icon.className = 'powerup-icon-small';
+            icon.textContent = '⚡';
+            myDisplay.appendChild(icon);
+        }
+    }
+    
+    // 🎨 THEME SYSTEM 🎨
+    selectTheme(theme) {
+        if (!this.unlockedThemes.includes(theme)) {
+            this.showAchievement('Theme Locked!', '🔒');
+            return;
+        }
+        
+        this.theme = theme;
+        document.body.className = theme === 'default' ? '' : `${theme}-theme`;
+        this.elements.themeSelector.style.display = 'none';
+        
+        // Update active theme button
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.theme === theme) {
+                btn.classList.add('active');
+            }
+        });
+        
+        this.playEpicSound('victory');
+        this.showAchievement(`${theme.toUpperCase()} Theme Active!`, '🎨');
+        this.saveStats();
+    }
+    
+    checkUnlocks() {
+        const unlocks = [];
+        
+        // Theme unlocks
+        if (this.stats.gamesPlayed >= 10 && !this.unlockedThemes.includes('fire')) {
+            this.unlockedThemes.push('fire');
+            unlocks.push('Fire Theme');
+        }
+        if (this.stats.roundsWon >= 15 && !this.unlockedThemes.includes('ice')) {
+            this.unlockedThemes.push('ice');
+            unlocks.push('Ice Theme');
+        }
+        if (this.stats.currentStreak >= 5 && !this.unlockedThemes.includes('electric')) {
+            this.unlockedThemes.push('electric');
+            unlocks.push('Electric Theme');
+        }
+        
+        // Show theme selector if new themes unlocked
+        if (unlocks.length > 0) {
+            unlocks.forEach(unlock => {
+                this.showAchievement(`${unlock} Unlocked!`, '🎉');
+            });
+            
+            setTimeout(() => {
+                this.elements.themeSelector.style.display = 'block';
+            }, 3000);
+        }
+    }
+    
+    // 🌪️ SPECIAL ROUNDS 🌪️
+    startSpecialRound() {
+        const rounds = [
+            { title: '🌪️ CHAOS ROUND!', desc: 'All choices win against all!' },
+            { title: '🎯 SUDDEN DEATH!', desc: 'Loser loses 2 points!' },
+            { title: '💫 LUCKY ROUND!', desc: 'Winner gets a power-up!' },
+            { title: '🔄 REVERSE ROUND!', desc: 'Everything is backwards!' },
+            { title: '⚡ SPEED ROUND!', desc: 'Only 5 seconds to choose!' }
+        ];
+        
+        const round = rounds[Math.floor(Math.random() * rounds.length)];
+        this.specialRoundActive = round;
+        
+        this.elements.specialRoundTitle.textContent = round.title;
+        this.elements.specialRoundDesc.textContent = round.desc;
+        this.elements.specialRound.style.display = 'flex';
+        
+        this.playEpicSound('battleStart');
+        
+        setTimeout(() => {
+            this.elements.specialRound.style.display = 'none';
+            this.elements.choiceHeader.textContent = round.title;
+            this.resetChoices();
+            this.hideGameResult();
+            this.enableChoiceButtons();
+            
+            if (round.title.includes('SPEED')) {
+                this.countdownTime = 5;
+            }
+            this.startCountdown();
+        }, 3000);
+    }
+    
+    // 🎆 INTERACTIVE EFFECTS 🎆
+    createClickEffect(x, y) {
+        const effect = document.createElement('div');
+        effect.style.position = 'fixed';
+        effect.style.left = x + 'px';
+        effect.style.top = y + 'px';
+        effect.style.width = '20px';
+        effect.style.height = '20px';
+        effect.style.background = 'radial-gradient(circle, #ffd700, transparent)';
+        effect.style.borderRadius = '50%';
+        effect.style.pointerEvents = 'none';
+        effect.style.animation = 'clickRipple 0.6s ease-out forwards';
+        effect.style.zIndex = '9999';
+        
+        document.body.appendChild(effect);
+        
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 600);
+    }
+    
+    createEnergyBoost() {
+        const boost = document.createElement('div');
+        boost.style.position = 'fixed';
+        boost.style.top = '50%';
+        boost.style.left = '50%';
+        boost.style.transform = 'translate(-50%, -50%)';
+        boost.style.width = '100px';
+        boost.style.height = '100px';
+        boost.style.background = 'radial-gradient(circle, rgba(255, 215, 0, 0.8), transparent)';
+        boost.style.borderRadius = '50%';
+        boost.style.pointerEvents = 'none';
+        boost.style.animation = 'energyBoost 0.8s ease-out forwards';
+        boost.style.zIndex = '9998';
+        
+        document.body.appendChild(boost);
+        this.playEpicSound('charge');
+        
+        setTimeout(() => {
+            if (boost.parentNode) {
+                boost.parentNode.removeChild(boost);
+            }
+        }, 800);
     }
     
     updateStatus(message) {

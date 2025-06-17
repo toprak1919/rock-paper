@@ -19,16 +19,54 @@
             </div>
         </div>
         
-        <!-- Scoreboard -->
+        <!-- Scoreboard with Power-ups -->
         <div class="scoreboard" id="scoreboard" style="display: none;">
             <div class="score-item">
-                <span class="player-name" id="player1-name">Player 1</span>
+                <div class="player-header">
+                    <span class="player-name" id="player1-name">Player 1</span>
+                    <div class="power-up-display" id="player1-powerups"></div>
+                </div>
                 <span class="score" id="player1-score">0</span>
             </div>
             <div class="score-vs">VS</div>
             <div class="score-item">
-                <span class="player-name" id="player2-name">Player 2</span>
+                <div class="player-header">
+                    <span class="player-name" id="player2-name">Player 2</span>
+                    <div class="power-up-display" id="player2-powerups"></div>
+                </div>
                 <span class="score" id="player2-score">0</span>
+            </div>
+        </div>
+        
+        <!-- Power-up Selection -->
+        <div class="powerup-selection" id="powerup-selection" style="display: none;">
+            <h3>🎉 Choose Your Power-up! 🎉</h3>
+            <div class="powerup-buttons">
+                <button class="powerup-btn" data-powerup="shield">
+                    <span class="powerup-icon">🛡️</span>
+                    <span class="powerup-name">Shield</span>
+                    <span class="powerup-desc">Block next loss</span>
+                </button>
+                <button class="powerup-btn" data-powerup="lightning">
+                    <span class="powerup-icon">⚡</span>
+                    <span class="powerup-name">Lightning</span>
+                    <span class="powerup-desc">Win ties</span>
+                </button>
+                <button class="powerup-btn" data-powerup="double">
+                    <span class="powerup-icon">🔥</span>
+                    <span class="powerup-name">Double</span>
+                    <span class="powerup-desc">2x points</span>
+                </button>
+                <button class="powerup-btn" data-powerup="crystal">
+                    <span class="powerup-icon">🔮</span>
+                    <span class="powerup-name">Crystal</span>
+                    <span class="powerup-desc">See early</span>
+                </button>
+                <button class="powerup-btn" data-powerup="time">
+                    <span class="powerup-icon">⏰</span>
+                    <span class="powerup-name">Time</span>
+                    <span class="powerup-desc">+5 seconds</span>
+                </button>
             </div>
         </div>
         
@@ -60,13 +98,14 @@
             </div>
             
             <div class="choices">
-                <h3>Make your choice:</h3>
+                <h3 id="choice-header">Make your choice:</h3>
                 <div class="choice-buttons">
                     <button class="choice-btn" data-choice="rock">
                         <div class="choice-inner">
                             <span class="emoji">🪨</span>
                             <span class="text">Rock</span>
                             <div class="choice-glow"></div>
+                            <div class="powerup-aura" id="rock-aura"></div>
                         </div>
                     </button>
                     <button class="choice-btn" data-choice="paper">
@@ -74,6 +113,7 @@
                             <span class="emoji">📄</span>
                             <span class="text">Paper</span>
                             <div class="choice-glow"></div>
+                            <div class="powerup-aura" id="paper-aura"></div>
                         </div>
                     </button>
                     <button class="choice-btn" data-choice="scissors">
@@ -81,8 +121,14 @@
                             <span class="emoji">✂️</span>
                             <span class="text">Scissors</span>
                             <div class="choice-glow"></div>
+                            <div class="powerup-aura" id="scissors-aura"></div>
                         </div>
                     </button>
+                </div>
+                
+                <!-- Active Power-ups Display -->
+                <div class="active-powerups" id="active-powerups" style="display: none;">
+                    <div class="powerup-active" id="my-active-powerup"></div>
                 </div>
             </div>
 
@@ -156,6 +202,37 @@
             <div class="screen-flash" id="screen-flash"></div>
             <div class="screen-ripple" id="screen-ripple"></div>
             <div class="glitch-overlay" id="glitch-overlay"></div>
+        </div>
+        
+        <!-- Theme Selector -->
+        <div class="theme-selector" id="theme-selector" style="display: none;">
+            <h3>🎨 Choose Theme</h3>
+            <div class="theme-buttons">
+                <button class="theme-btn" data-theme="default">
+                    <span class="theme-preview default-preview"></span>
+                    <span>Classic</span>
+                </button>
+                <button class="theme-btn" data-theme="fire">
+                    <span class="theme-preview fire-preview"></span>
+                    <span>🔥 Fire</span>
+                </button>
+                <button class="theme-btn" data-theme="ice">
+                    <span class="theme-preview ice-preview"></span>
+                    <span>❄️ Ice</span>
+                </button>
+                <button class="theme-btn" data-theme="electric">
+                    <span class="theme-preview electric-preview"></span>
+                    <span>⚡ Electric</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Special Round Indicator -->
+        <div class="special-round" id="special-round" style="display: none;">
+            <div class="special-round-content">
+                <h2 id="special-round-title">🌪️ CHAOS ROUND!</h2>
+                <p id="special-round-desc">All choices win against all!</p>
+            </div>
         </div>
         
         <!-- Cursor Trail -->
