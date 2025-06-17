@@ -40,20 +40,48 @@
         </div>
 
         <div class="game-area" id="game-area" style="display: none;">
+            <!-- Countdown Timer -->
+            <div class="countdown-area" id="countdown-area" style="display: none;">
+                <div class="countdown-circle">
+                    <svg class="countdown-svg" width="120" height="120">
+                        <defs>
+                            <linearGradient id="countdown-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="countdown-track" cx="60" cy="60" r="50"></circle>
+                        <circle class="countdown-progress" id="countdown-progress" cx="60" cy="60" r="50"></circle>
+                    </svg>
+                    <div class="countdown-text" id="countdown-text">10</div>
+                </div>
+                <p class="countdown-label">Make your choice!</p>
+            </div>
+            
             <div class="choices">
                 <h3>Make your choice:</h3>
                 <div class="choice-buttons">
                     <button class="choice-btn" data-choice="rock">
-                        <span class="emoji">🪨</span>
-                        <span class="text">Rock</span>
+                        <div class="choice-inner">
+                            <span class="emoji">🪨</span>
+                            <span class="text">Rock</span>
+                            <div class="choice-glow"></div>
+                        </div>
                     </button>
                     <button class="choice-btn" data-choice="paper">
-                        <span class="emoji">📄</span>
-                        <span class="text">Paper</span>
+                        <div class="choice-inner">
+                            <span class="emoji">📄</span>
+                            <span class="text">Paper</span>
+                            <div class="choice-glow"></div>
+                        </div>
                     </button>
                     <button class="choice-btn" data-choice="scissors">
-                        <span class="emoji">✂️</span>
-                        <span class="text">Scissors</span>
+                        <div class="choice-inner">
+                            <span class="emoji">✂️</span>
+                            <span class="text">Scissors</span>
+                            <div class="choice-glow"></div>
+                        </div>
                     </button>
                 </div>
             </div>
@@ -61,17 +89,23 @@
             <div class="game-result" id="game-result" style="display: none;">
                 <h3>Round Result</h3>
                 <div class="result-display">
-                    <div class="player-choice">
+                    <div class="player-choice animate-choice" id="your-choice-container">
                         <div class="choice-label" id="your-name-label">You</div>
-                        <div class="choice-emoji" id="your-choice"></div>
+                        <div class="choice-emoji-large" id="your-choice"></div>
+                        <div class="choice-effect" id="your-choice-effect"></div>
                     </div>
-                    <div class="vs">VS</div>
-                    <div class="player-choice">
+                    <div class="vs-container">
+                        <div class="vs">VS</div>
+                        <div class="battle-effect" id="battle-effect"></div>
+                    </div>
+                    <div class="player-choice animate-choice" id="opponent-choice-container">
                         <div class="choice-label" id="opponent-name-label">Opponent</div>
-                        <div class="choice-emoji" id="opponent-choice"></div>
+                        <div class="choice-emoji-large" id="opponent-choice"></div>
+                        <div class="choice-effect" id="opponent-choice-effect"></div>
                     </div>
                 </div>
                 <div class="winner" id="winner-text"></div>
+                <div class="confetti" id="confetti"></div>
             </div>
             
             <!-- Chat Section -->
@@ -85,9 +119,16 @@
         </div>
 
         <div class="waiting-area" id="waiting-area" style="display: none;">
-            <div class="spinner"></div>
+            <div class="pulse-container">
+                <div class="pulse-circle"></div>
+                <div class="pulse-circle"></div>
+                <div class="pulse-circle"></div>
+            </div>
             <p>Waiting for players...</p>
         </div>
+        
+        <!-- Particle System -->
+        <div class="particles" id="particles"></div>
     </div>
 
     <script src="client.js"></script>

@@ -31,7 +31,28 @@ class RPSGame {
             chatSection: document.getElementById('chat-section'),
             chatMessages: document.getElementById('chat-messages'),
             chatInput: document.getElementById('chat-input'),
-            sendChatBtn: document.getElementById('send-chat-btn')
+            sendChatBtn: document.getElementById('send-chat-btn'),
+            countdownArea: document.getElementById('countdown-area'),
+            countdownText: document.getElementById('countdown-text'),
+            countdownProgress: document.getElementById('countdown-progress'),
+            confetti: document.getElementById('confetti'),
+            particles: document.getElementById('particles')
+        };
+        
+        this.countdownTimer = null;
+        this.countdownTime = 10;
+        this.soundEnabled = true;
+        this.achievements = {
+            firstWin: false,
+            winStreak3: false,
+            winStreak5: false,
+            perfectGame: false
+        };
+        this.stats = {
+            gamesPlayed: 0,
+            roundsWon: 0,
+            currentStreak: 0,
+            maxStreak: 0
         };
         
         this.choiceEmojis = {
@@ -41,6 +62,8 @@ class RPSGame {
         };
         
         this.init();
+        this.createParticleSystem();
+        this.loadStats();
     }
     
     init() {
@@ -152,6 +175,7 @@ class RPSGame {
         this.showScoreboard();
         this.showChat();
         this.resetChoices();
+        this.startCountdown();
     }
     
     handleWaiting(data) {
@@ -184,6 +208,7 @@ class RPSGame {
         this.resetChoices();
         this.hideGameResult();
         this.enableChoiceButtons();
+        this.startCountdown();
     }
     
     handleNewGame(data) {
@@ -257,6 +282,8 @@ class RPSGame {
         
         this.choiceMade = true;
         this.highlightChoice(choice);
+        this.stopCountdown();
+        this.playSound('click');
         
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
@@ -294,6 +321,13 @@ class RPSGame {
         this.elements.choiceButtons.forEach(button => {
             button.classList.remove('selected');
         });
+        
+        // Reset animation classes
+        const yourContainer = document.getElementById('your-choice-container');
+        const opponentContainer = document.getElementById('opponent-choice-container');
+        if (yourContainer) yourContainer.classList.remove('animate-choice');
+        if (opponentContainer) opponentContainer.classList.remove('animate-choice');
+        
         this.enableChoiceButtons();
     }
     
@@ -317,8 +351,19 @@ class RPSGame {
         const opponentId = this.playerId === 'player1' ? 'player2' : 'player1';
         const opponentChoice = choices[opponentId];
         
-        this.elements.yourChoice.textContent = this.choiceEmojis[yourChoice];
-        this.elements.opponentChoice.textContent = this.choiceEmojis[opponentChoice];
+        // Add animation classes
+        const yourContainer = document.getElementById('your-choice-container');
+        const opponentContainer = document.getElementById('opponent-choice-container');
+        
+        setTimeout(() => {
+            this.elements.yourChoice.textContent = this.choiceEmojis[yourChoice];
+            yourContainer.classList.add('animate-choice');
+        }, 200);
+        
+        setTimeout(() => {
+            this.elements.opponentChoice.textContent = this.choiceEmojis[opponentChoice];
+            opponentContainer.classList.add('animate-choice');
+        }, 600);
         
         // Update player names in result display
         this.elements.yourNameLabel.textContent = this.username;
@@ -333,13 +378,29 @@ class RPSGame {
         } else if (winner === this.playerId) {
             winnerText = 'You win the round!';
             winnerClass = 'win';
+            this.createConfetti();
         } else {
             winnerText = 'You lose the round!';
             winnerClass = 'lose';
         }
         
-        this.elements.winnerText.textContent = winnerText;
-        this.elements.winnerText.className = `winner ${winnerClass}`;
+        setTimeout(() => {
+            this.elements.winnerText.textContent = winnerText;
+            this.elements.winnerText.className = `winner ${winnerClass}`;
+            
+            // Trigger battle effect
+            const battleEffect = document.getElementById('battle-effect');
+            battleEffect.style.animation = 'battleFlash 0.5s ease-in-out';
+            
+            // Update stats and play sounds
+            if (winner === this.playerId) {
+                this.updateStats(true);
+                this.playSound('win');
+            } else if (winner !== 'tie') {
+                this.updateStats(false);
+                this.playSound('lose');
+            }
+        }, 1000);
         
         this.updateScoreboard();
         this.elements.gameResult.style.display = 'block';
@@ -348,6 +409,8 @@ class RPSGame {
     
     hideGameResult() {
         this.elements.gameResult.style.display = 'none';
+        // Clear confetti
+        this.elements.confetti.innerHTML = '';
     }
     
     joinGame() {
@@ -420,6 +483,212 @@ class RPSGame {
             this.elements.player2Name.textContent = this.players.player2.username;
             this.elements.player2Score.textContent = this.scores.player2;
         }
+    }
+    
+    startCountdown() {
+        this.countdownTime = 10;
+        this.elements.countdownArea.style.display = 'flex';
+        this.updateCountdownDisplay();
+        
+        this.countdownTimer = setInterval(() => {
+            this.countdownTime--;
+            this.updateCountdownDisplay();
+            
+            if (this.countdownTime <= 0) {
+                this.stopCountdown();
+                if (!this.choiceMade) {
+                    // Auto-select random choice
+                    const choices = ['rock', 'paper', 'scissors'];
+                    const randomChoice = choices[Math.floor(Math.random() * choices.length)];
+                    this.makeChoice(randomChoice);
+                }
+            }
+        }, 1000);
+    }
+    
+    stopCountdown() {
+        if (this.countdownTimer) {
+            clearInterval(this.countdownTimer);
+            this.countdownTimer = null;
+        }
+        this.elements.countdownArea.style.display = 'none';
+    }
+    
+    updateCountdownDisplay() {
+        this.elements.countdownText.textContent = this.countdownTime;
+        const progress = (10 - this.countdownTime) / 10;
+        const circumference = 2 * Math.PI * 50;
+        const offset = circumference * progress;
+        this.elements.countdownProgress.style.strokeDashoffset = offset;
+        
+        // Change color as time runs out
+        if (this.countdownTime <= 3) {
+            this.elements.countdownProgress.style.stroke = '#ef4444';
+            this.elements.countdownText.style.color = '#ef4444';
+            if (this.countdownTime <= 3 && this.countdownTime > 0) {
+                this.playSound('countdown');
+            }
+        } else if (this.countdownTime <= 5) {
+            this.elements.countdownProgress.style.stroke = '#f59e0b';
+            this.elements.countdownText.style.color = '#f59e0b';
+        } else {
+            this.elements.countdownProgress.style.stroke = '#10b981';
+            this.elements.countdownText.style.color = '#10b981';
+        }
+    }
+    
+    createConfetti() {
+        const colors = ['#ffd700', '#ff6b35', '#f7931e', '#c2185b', '#8e24aa', '#1976d2'];
+        
+        for (let i = 0; i < 50; i++) {
+            const confettiPiece = document.createElement('div');
+            confettiPiece.className = 'confetti-piece';
+            confettiPiece.style.left = Math.random() * 100 + '%';
+            confettiPiece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confettiPiece.style.animationDelay = Math.random() * 3 + 's';
+            confettiPiece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            
+            this.elements.confetti.appendChild(confettiPiece);
+            
+            setTimeout(() => {
+                if (confettiPiece.parentNode) {
+                    confettiPiece.parentNode.removeChild(confettiPiece);
+                }
+            }, 5000);
+        }
+    }
+    
+    createParticleSystem() {
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 8 + 's';
+            particle.style.animationDuration = (Math.random() * 4 + 6) + 's';
+            
+            this.elements.particles.appendChild(particle);
+        }
+    }
+    
+    playSound(type) {
+        if (!this.soundEnabled) return;
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        switch (type) {
+            case 'click':
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+                break;
+            case 'win':
+                oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                break;
+            case 'lose':
+                oscillator.frequency.setValueAtTime(330, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(247, audioContext.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.4);
+                break;
+            case 'countdown':
+                oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+                break;
+        }
+    }
+    
+    updateStats(won, gameEnded = false) {
+        if (gameEnded) {
+            this.stats.gamesPlayed++;
+        }
+        
+        if (won) {
+            this.stats.roundsWon++;
+            this.stats.currentStreak++;
+            this.stats.maxStreak = Math.max(this.stats.maxStreak, this.stats.currentStreak);
+            
+            // Check achievements
+            if (!this.achievements.firstWin && this.stats.roundsWon === 1) {
+                this.achievements.firstWin = true;
+                this.showAchievement('First Victory!', '🏆');
+            }
+            
+            if (!this.achievements.winStreak3 && this.stats.currentStreak === 3) {
+                this.achievements.winStreak3 = true;
+                this.showAchievement('Hat Trick!', '🔥');
+            }
+            
+            if (!this.achievements.winStreak5 && this.stats.currentStreak === 5) {
+                this.achievements.winStreak5 = true;
+                this.showAchievement('Unstoppable!', '⚡');
+            }
+        } else {
+            this.stats.currentStreak = 0;
+        }
+        
+        this.saveStats();
+    }
+    
+    showAchievement(title, emoji) {
+        const achievement = document.createElement('div');
+        achievement.className = 'achievement-popup';
+        achievement.innerHTML = `
+            <div class="achievement-content">
+                <div class="achievement-emoji">${emoji}</div>
+                <div class="achievement-title">${title}</div>
+            </div>
+        `;
+        
+        document.body.appendChild(achievement);
+        
+        setTimeout(() => {
+            achievement.classList.add('show');
+        }, 100);
+        
+        setTimeout(() => {
+            achievement.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(achievement);
+            }, 300);
+        }, 3000);
+        
+        this.playSound('win');
+    }
+    
+    loadStats() {
+        const savedStats = localStorage.getItem('rps-stats');
+        const savedAchievements = localStorage.getItem('rps-achievements');
+        
+        if (savedStats) {
+            this.stats = { ...this.stats, ...JSON.parse(savedStats) };
+        }
+        
+        if (savedAchievements) {
+            this.achievements = { ...this.achievements, ...JSON.parse(savedAchievements) };
+        }
+    }
+    
+    saveStats() {
+        localStorage.setItem('rps-stats', JSON.stringify(this.stats));
+        localStorage.setItem('rps-achievements', JSON.stringify(this.achievements));
     }
     
     updateStatus(message) {
