@@ -10,6 +10,28 @@
     <div class="container">
         <h1>🎮 Multiplayer Rock Paper Scissors</h1>
         
+        <!-- Username Input -->
+        <div class="username-area" id="username-area">
+            <h3>Enter Your Name</h3>
+            <div class="username-input">
+                <input type="text" id="username-input" placeholder="Enter your username" maxlength="20">
+                <button id="join-game-btn">Join Game</button>
+            </div>
+        </div>
+        
+        <!-- Scoreboard -->
+        <div class="scoreboard" id="scoreboard" style="display: none;">
+            <div class="score-item">
+                <span class="player-name" id="player1-name">Player 1</span>
+                <span class="score" id="player1-score">0</span>
+            </div>
+            <div class="score-vs">VS</div>
+            <div class="score-item">
+                <span class="player-name" id="player2-name">Player 2</span>
+                <span class="score" id="player2-score">0</span>
+            </div>
+        </div>
+        
         <div class="game-info">
             <div class="player-info">
                 <span id="player-id">Connecting...</span>
@@ -40,20 +62,29 @@
                 <h3>Round Result</h3>
                 <div class="result-display">
                     <div class="player-choice">
-                        <div class="choice-label">You</div>
+                        <div class="choice-label" id="your-name-label">You</div>
                         <div class="choice-emoji" id="your-choice"></div>
                     </div>
                     <div class="vs">VS</div>
                     <div class="player-choice">
-                        <div class="choice-label">Opponent</div>
+                        <div class="choice-label" id="opponent-name-label">Opponent</div>
                         <div class="choice-emoji" id="opponent-choice"></div>
                     </div>
                 </div>
                 <div class="winner" id="winner-text"></div>
             </div>
+            
+            <!-- Chat Section -->
+            <div class="chat-section" id="chat-section" style="display: none;">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100">
+                    <button id="send-chat-btn">Send</button>
+                </div>
+            </div>
         </div>
 
-        <div class="waiting-area" id="waiting-area">
+        <div class="waiting-area" id="waiting-area" style="display: none;">
             <div class="spinner"></div>
             <p>Waiting for players...</p>
         </div>

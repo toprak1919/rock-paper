@@ -41,12 +41,39 @@ let gameState = {
   player1: null,
   player2: null,
   choices: {},
-  gameActive: false
+  gameActive: false,
+  scores: { player1: 0, player2: 0 },
+  roundsToWin: 3,
+  currentRound: 0,
+  gameWinner: null
 };
+
+let chatMessages = [];
+
+function resetRound() {
+  gameState.choices = {};
+  gameState.gameActive = true;
+}
 
 function resetGame() {
   gameState.choices = {};
   gameState.gameActive = false;
+  gameState.scores = { player1: 0, player2: 0 };
+  gameState.currentRound = 0;
+  gameState.gameWinner = null;
+  chatMessages = [];
+}
+
+function checkGameWinner() {
+  if (gameState.scores.player1 >= gameState.roundsToWin) {
+    gameState.gameWinner = 'player1';
+    return true;
+  }
+  if (gameState.scores.player2 >= gameState.roundsToWin) {
+    gameState.gameWinner = 'player2';
+    return true;
+  }
+  return false;
 }
 
 function determineWinner(choice1, choice2) {
@@ -63,44 +90,60 @@ function determineWinner(choice1, choice2) {
 
 wss.on('connection', (ws) => {
   console.log('New client connected');
-
-  if (players.length < 2) {
-    const playerId = players.length === 0 ? 'player1' : 'player2';
-    players.push({id: playerId, ws: ws});
-    gameState[playerId] = ws;
-
-    ws.send(JSON.stringify({
-      type: 'playerAssignment',
-      playerId: playerId
-    }));
-
-    if (players.length === 2) {
-      players.forEach(player => {
-        player.ws.send(JSON.stringify({
-          type: 'gameReady',
-          message: 'Both players connected! Make your choice.'
-        }));
-      });
-      gameState.gameActive = true;
-    } else {
-      ws.send(JSON.stringify({
-        type: 'waiting',
-        message: 'Waiting for another player...'
-      }));
-    }
-  } else {
-    ws.send(JSON.stringify({
-      type: 'gameFull',
-      message: 'Game is full. Please try again later.'
-    }));
-    ws.close();
-  }
+  
+  ws.send(JSON.stringify({
+    type: 'requestUsername',
+    message: 'Please enter your username to join the game.'
+  }));
 
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
       
-      if (data.type === 'choice' && gameState.gameActive) {
+      if (data.type === 'setUsername') {
+        if (players.length < 2) {
+          const playerId = players.length === 0 ? 'player1' : 'player2';
+          players.push({id: playerId, ws: ws, username: data.username});
+          gameState[playerId] = ws;
+
+          ws.send(JSON.stringify({
+            type: 'playerAssignment',
+            playerId: playerId,
+            username: data.username
+          }));
+
+          if (players.length === 2) {
+            const gameData = {
+              type: 'gameReady',
+              message: 'Both players connected! Best of ' + gameState.roundsToWin + ' rounds.',
+              players: {
+                player1: { username: players[0].username },
+                player2: { username: players[1].username }
+              },
+              scores: gameState.scores,
+              roundsToWin: gameState.roundsToWin
+            };
+            
+            players.forEach(player => {
+              player.ws.send(JSON.stringify(gameData));
+            });
+            gameState.gameActive = true;
+          } else {
+            ws.send(JSON.stringify({
+              type: 'waiting',
+              message: 'Waiting for another player...'
+            }));
+          }
+        } else {
+          ws.send(JSON.stringify({
+            type: 'gameFull',
+            message: 'Game is full. Please try again later.'
+          }));
+          ws.close();
+        }
+      }
+      
+      else if (data.type === 'choice' && gameState.gameActive) {
         const player = players.find(p => p.ws === ws);
         if (player) {
           gameState.choices[player.id] = data.choice;
@@ -118,27 +161,91 @@ wss.on('connection', (ws) => {
               gameState.choices.player1,
               gameState.choices.player2
             );
+            
+            gameState.currentRound++;
+            if (winner !== 'tie') {
+              gameState.scores[winner]++;
+            }
 
             const result = {
               type: 'gameResult',
               choices: gameState.choices,
-              winner: winner
+              winner: winner,
+              scores: gameState.scores,
+              round: gameState.currentRound,
+              players: {
+                player1: { username: players[0].username },
+                player2: { username: players[1].username }
+              }
             };
 
             players.forEach(p => {
               p.ws.send(JSON.stringify(result));
             });
-
+            
+            const gameEnded = checkGameWinner();
+            
             setTimeout(() => {
-              resetGame();
-              players.forEach(p => {
-                p.ws.send(JSON.stringify({
-                  type: 'newRound',
-                  message: 'New round! Make your choice.'
-                }));
-              });
+              if (gameEnded) {
+                players.forEach(p => {
+                  p.ws.send(JSON.stringify({
+                    type: 'gameEnded',
+                    winner: gameState.gameWinner,
+                    finalScores: gameState.scores,
+                    players: {
+                      player1: { username: players[0].username },
+                      player2: { username: players[1].username }
+                    }
+                  }));
+                });
+                
+                setTimeout(() => {
+                  resetGame();
+                  players.forEach(p => {
+                    p.ws.send(JSON.stringify({
+                      type: 'newGame',
+                      message: 'New game starting! Best of ' + gameState.roundsToWin + ' rounds.',
+                      scores: gameState.scores,
+                      roundsToWin: gameState.roundsToWin
+                    }));
+                  });
+                }, 5000);
+              } else {
+                resetRound();
+                players.forEach(p => {
+                  p.ws.send(JSON.stringify({
+                    type: 'newRound',
+                    message: 'Next round! Make your choice.',
+                    scores: gameState.scores,
+                    round: gameState.currentRound + 1
+                  }));
+                });
+              }
             }, 3000);
           }
+        }
+      }
+      
+      else if (data.type === 'chat') {
+        const player = players.find(p => p.ws === ws);
+        if (player && data.message.trim()) {
+          const chatMessage = {
+            username: player.username,
+            message: data.message.trim(),
+            timestamp: Date.now()
+          };
+          
+          chatMessages.push(chatMessage);
+          if (chatMessages.length > 50) {
+            chatMessages.shift();
+          }
+          
+          players.forEach(p => {
+            p.ws.send(JSON.stringify({
+              type: 'chatMessage',
+              ...chatMessage
+            }));
+          });
         }
       }
     } catch (error) {
@@ -148,6 +255,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('Client disconnected');
+    const disconnectedPlayer = players.find(p => p.ws === ws);
     players = players.filter(p => p.ws !== ws);
     
     if (gameState.player1 === ws) gameState.player1 = null;
@@ -158,7 +266,9 @@ wss.on('connection', (ws) => {
     players.forEach(p => {
       p.ws.send(JSON.stringify({
         type: 'playerDisconnected',
-        message: 'Other player disconnected. Waiting for new player...'
+        message: disconnectedPlayer ? 
+          `${disconnectedPlayer.username} disconnected. Waiting for new player...` :
+          'Other player disconnected. Waiting for new player...'
       }));
     });
   });
