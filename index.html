@@ -127,8 +127,39 @@
             <p>Waiting for players...</p>
         </div>
         
-        <!-- Particle System -->
+        <!-- Battle Arena -->
+        <div class="battle-arena" id="battle-arena" style="display: none;">
+            <div class="arena-overlay"></div>
+            <div class="energy-field left" id="energy-field-left"></div>
+            <div class="energy-field right" id="energy-field-right"></div>
+            <div class="battle-center">
+                <div class="collision-point" id="collision-point"></div>
+                <div class="energy-burst" id="energy-burst"></div>
+                <div class="battle-text" id="battle-text">CLASH!</div>
+            </div>
+            <div class="choice-projectile left" id="projectile-left"></div>
+            <div class="choice-projectile right" id="projectile-right"></div>
+            <div class="shockwave" id="shockwave"></div>
+        </div>
+        
+        <!-- Matrix Background -->
+        <div class="matrix-bg" id="matrix-bg">
+            <canvas id="matrix-canvas"></canvas>
+        </div>
+        
+        <!-- Advanced Particle System -->
         <div class="particles" id="particles"></div>
+        <div class="energy-particles" id="energy-particles"></div>
+        
+        <!-- Screen Effects -->
+        <div class="screen-effects" id="screen-effects">
+            <div class="screen-flash" id="screen-flash"></div>
+            <div class="screen-ripple" id="screen-ripple"></div>
+            <div class="glitch-overlay" id="glitch-overlay"></div>
+        </div>
+        
+        <!-- Cursor Trail -->
+        <div class="cursor-trail" id="cursor-trail"></div>
     </div>
 
     <script src="client.js"></script>

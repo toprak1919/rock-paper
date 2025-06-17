@@ -36,7 +36,22 @@ class RPSGame {
             countdownText: document.getElementById('countdown-text'),
             countdownProgress: document.getElementById('countdown-progress'),
             confetti: document.getElementById('confetti'),
-            particles: document.getElementById('particles')
+            particles: document.getElementById('particles'),
+            battleArena: document.getElementById('battle-arena'),
+            energyFieldLeft: document.getElementById('energy-field-left'),
+            energyFieldRight: document.getElementById('energy-field-right'),
+            collisionPoint: document.getElementById('collision-point'),
+            energyBurst: document.getElementById('energy-burst'),
+            battleText: document.getElementById('battle-text'),
+            projectileLeft: document.getElementById('projectile-left'),
+            projectileRight: document.getElementById('projectile-right'),
+            shockwave: document.getElementById('shockwave'),
+            screenFlash: document.getElementById('screen-flash'),
+            screenRipple: document.getElementById('screen-ripple'),
+            glitchOverlay: document.getElementById('glitch-overlay'),
+            matrixCanvas: document.getElementById('matrix-canvas'),
+            energyParticles: document.getElementById('energy-particles'),
+            cursorTrail: document.getElementById('cursor-trail')
         };
         
         this.countdownTimer = null;
@@ -63,6 +78,9 @@ class RPSGame {
         
         this.init();
         this.createParticleSystem();
+        this.createEnergyParticles();
+        this.initMatrixBackground();
+        this.initCursorTrail();
         this.loadStats();
     }
     
@@ -351,60 +369,8 @@ class RPSGame {
         const opponentId = this.playerId === 'player1' ? 'player2' : 'player1';
         const opponentChoice = choices[opponentId];
         
-        // Add animation classes
-        const yourContainer = document.getElementById('your-choice-container');
-        const opponentContainer = document.getElementById('opponent-choice-container');
-        
-        setTimeout(() => {
-            this.elements.yourChoice.textContent = this.choiceEmojis[yourChoice];
-            yourContainer.classList.add('animate-choice');
-        }, 200);
-        
-        setTimeout(() => {
-            this.elements.opponentChoice.textContent = this.choiceEmojis[opponentChoice];
-            opponentContainer.classList.add('animate-choice');
-        }, 600);
-        
-        // Update player names in result display
-        this.elements.yourNameLabel.textContent = this.username;
-        this.elements.opponentNameLabel.textContent = players[opponentId].username;
-        
-        let winnerText = '';
-        let winnerClass = '';
-        
-        if (winner === 'tie') {
-            winnerText = "It's a tie!";
-            winnerClass = 'tie';
-        } else if (winner === this.playerId) {
-            winnerText = 'You win the round!';
-            winnerClass = 'win';
-            this.createConfetti();
-        } else {
-            winnerText = 'You lose the round!';
-            winnerClass = 'lose';
-        }
-        
-        setTimeout(() => {
-            this.elements.winnerText.textContent = winnerText;
-            this.elements.winnerText.className = `winner ${winnerClass}`;
-            
-            // Trigger battle effect
-            const battleEffect = document.getElementById('battle-effect');
-            battleEffect.style.animation = 'battleFlash 0.5s ease-in-out';
-            
-            // Update stats and play sounds
-            if (winner === this.playerId) {
-                this.updateStats(true);
-                this.playSound('win');
-            } else if (winner !== 'tie') {
-                this.updateStats(false);
-                this.playSound('lose');
-            }
-        }, 1000);
-        
-        this.updateScoreboard();
-        this.elements.gameResult.style.display = 'block';
-        this.updateStatus('Round complete! Next round starting soon...');
+        // 🔥 EPIC BATTLE SEQUENCE 🔥
+        this.startEpicBattleSequence(yourChoice, opponentChoice, winner, data);
     }
     
     hideGameResult() {
@@ -689,6 +655,287 @@ class RPSGame {
     saveStats() {
         localStorage.setItem('rps-stats', JSON.stringify(this.stats));
         localStorage.setItem('rps-achievements', JSON.stringify(this.achievements));
+    }
+    
+    // 🎭 EPIC BATTLE SEQUENCE 🎭
+    startEpicBattleSequence(yourChoice, opponentChoice, winner, data) {
+        this.updateStatus('🔥 BATTLE COMMENCING! 🔥');
+        
+        // Stage 1: Arena Setup (0.5s)
+        this.elements.battleArena.style.display = 'block';
+        this.playEpicSound('battleStart');
+        this.triggerScreenEffect('darken');
+        
+        setTimeout(() => {
+            // Stage 2: Show projectiles (0.5s)
+            this.elements.projectileLeft.textContent = this.choiceEmojis[yourChoice];
+            this.elements.projectileRight.textContent = this.choiceEmojis[opponentChoice];
+            this.elements.projectileLeft.style.opacity = '1';
+            this.elements.projectileRight.style.opacity = '1';
+            this.playEpicSound('charge');
+        }, 500);
+        
+        setTimeout(() => {
+            // Stage 3: Launch projectiles (1s)
+            this.elements.projectileLeft.style.animation = 'battleSequence 1s ease-in forwards';
+            this.elements.projectileRight.style.animation = 'battleSequenceRight 1s ease-in forwards';
+            this.playEpicSound('launch');
+        }, 1000);
+        
+        setTimeout(() => {
+            // Stage 4: COLLISION! (0.3s)
+            this.elements.collisionPoint.style.opacity = '1';
+            this.elements.energyBurst.style.animation = 'explosionBurst 0.8s ease-out forwards';
+            this.elements.shockwave.style.animation = 'shockwaveExpand 1s ease-out forwards';
+            this.triggerScreenEffect('flash');
+            this.triggerScreenEffect('shake');
+            this.playEpicSound('explosion');
+        }, 2000);
+        
+        setTimeout(() => {
+            // Stage 5: Battle text reveal (0.5s)
+            let battleMsg = 'CLASH!';
+            if (winner === 'tie') battleMsg = 'TIE!';
+            else if (winner === this.playerId) battleMsg = 'VICTORY!';
+            else battleMsg = 'DEFEAT!';
+            
+            this.elements.battleText.textContent = battleMsg;
+            this.elements.battleText.style.animation = 'textReveal 0.8s ease-out forwards';
+            this.playEpicSound(winner === this.playerId ? 'victory' : winner === 'tie' ? 'tie' : 'defeat');
+        }, 2300);
+        
+        setTimeout(() => {
+            // Stage 6: Show results (start normal result display)
+            this.showNormalGameResult(data, yourChoice, opponentChoice, winner);
+            
+            // Clear battle arena
+            setTimeout(() => {
+                this.clearBattleArena();
+            }, 2000);
+        }, 3500);
+    }
+    
+    showNormalGameResult(data, yourChoice, opponentChoice, winner) {
+        const { scores, players } = data;
+        const opponentId = this.playerId === 'player1' ? 'player2' : 'player1';
+        
+        // Add animation classes
+        const yourContainer = document.getElementById('your-choice-container');
+        const opponentContainer = document.getElementById('opponent-choice-container');
+        
+        setTimeout(() => {
+            this.elements.yourChoice.textContent = this.choiceEmojis[yourChoice];
+            yourContainer.classList.add('animate-choice');
+        }, 200);
+        
+        setTimeout(() => {
+            this.elements.opponentChoice.textContent = this.choiceEmojis[opponentChoice];
+            opponentContainer.classList.add('animate-choice');
+        }, 600);
+        
+        // Update player names in result display
+        this.elements.yourNameLabel.textContent = this.username;
+        this.elements.opponentNameLabel.textContent = players[opponentId].username;
+        
+        let winnerText = '';
+        let winnerClass = '';
+        
+        if (winner === 'tie') {
+            winnerText = "Epic tie!";
+            winnerClass = 'tie';
+        } else if (winner === this.playerId) {
+            winnerText = 'Legendary victory!';
+            winnerClass = 'win';
+            this.createConfetti();
+        } else {
+            winnerText = 'Valiant effort!';
+            winnerClass = 'lose';
+        }
+        
+        setTimeout(() => {
+            this.elements.winnerText.textContent = winnerText;
+            this.elements.winnerText.className = `winner ${winnerClass}`;
+            
+            // Update stats
+            if (winner === this.playerId) {
+                this.updateStats(true);
+            } else if (winner !== 'tie') {
+                this.updateStats(false);
+            }
+        }, 1000);
+        
+        this.updateScoreboard();
+        this.elements.gameResult.style.display = 'block';
+        this.updateStatus('Epic battle complete! Next round starting soon...');
+    }
+    
+    clearBattleArena() {
+        this.elements.battleArena.style.display = 'none';
+        this.elements.projectileLeft.style.opacity = '0';
+        this.elements.projectileRight.style.opacity = '0';
+        this.elements.collisionPoint.style.opacity = '0';
+        this.elements.battleText.style.opacity = '0';
+        
+        // Reset animations
+        this.elements.projectileLeft.style.animation = '';
+        this.elements.projectileRight.style.animation = '';
+        this.elements.energyBurst.style.animation = '';
+        this.elements.shockwave.style.animation = '';
+        this.elements.battleText.style.animation = '';
+    }
+    
+    triggerScreenEffect(type) {
+        switch (type) {
+            case 'flash':
+                this.elements.screenFlash.style.animation = 'none';
+                this.elements.screenFlash.offsetHeight; // Trigger reflow
+                this.elements.screenFlash.style.animation = 'flash 0.3s ease-out';
+                break;
+            case 'shake':
+                document.body.style.animation = 'shake 0.5s ease-in-out';
+                setTimeout(() => {
+                    document.body.style.animation = '';
+                }, 500);
+                break;
+            case 'darken':
+                this.elements.glitchOverlay.style.opacity = '1';
+                setTimeout(() => {
+                    this.elements.glitchOverlay.style.opacity = '0';
+                }, 1000);
+                break;
+        }
+    }
+    
+    playEpicSound(type) {
+        if (!this.soundEnabled) return;
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        switch (type) {
+            case 'battleStart':
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.5);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                break;
+            case 'charge':
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+                break;
+            case 'launch':
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+                break;
+            case 'explosion':
+                oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.5);
+                gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                break;
+            case 'victory':
+                this.playSound('win'); // Use existing victory sound
+                break;
+            case 'defeat':
+                this.playSound('lose'); // Use existing defeat sound
+                break;
+            case 'tie':
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+                break;
+        }
+    }
+    
+    createEnergyParticles() {
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'energy-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 4 + 's';
+            particle.style.animationDuration = (Math.random() * 2 + 3) + 's';
+            
+            this.elements.energyParticles.appendChild(particle);
+        }
+    }
+    
+    initMatrixBackground() {
+        const canvas = this.elements.matrixCanvas;
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const chars = '01';
+        const charArray = chars.split('');
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+        
+        for (let x = 0; x < columns; x++) {
+            drops[x] = 1;
+        }
+        
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#00ff41';
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        };
+        
+        setInterval(draw, 100);
+    }
+    
+    initCursorTrail() {
+        let mouseX = 0;
+        let mouseY = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            const dot = document.createElement('div');
+            dot.className = 'cursor-dot';
+            dot.style.left = mouseX + 'px';
+            dot.style.top = mouseY + 'px';
+            
+            this.elements.cursorTrail.appendChild(dot);
+            
+            setTimeout(() => {
+                if (dot.parentNode) {
+                    dot.parentNode.removeChild(dot);
+                }
+            }, 800);
+        });
     }
     
     updateStatus(message) {
