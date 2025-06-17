@@ -1,0 +1,15 @@
+{
+  "name": "rock-paper-scissors-multiplayer",
+  "version": "1.0.0",
+  "description": "A simple multiplayer rock paper scissors game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "keywords": ["game", "multiplayer", "rock-paper-scissors", "websocket"],
+  "author": "",
+  "license": "MIT"
+}

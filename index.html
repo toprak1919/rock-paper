@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Rock Paper Scissors</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Multiplayer Rock Paper Scissors</h1>
+        
+        <div class="game-info">
+            <div class="player-info">
+                <span id="player-id">Connecting...</span>
+            </div>
+            <div class="status" id="status">Connecting to server...</div>
+        </div>
+
+        <div class="game-area" id="game-area" style="display: none;">
+            <div class="choices">
+                <h3>Make your choice:</h3>
+                <div class="choice-buttons">
+                    <button class="choice-btn" data-choice="rock">
+                        <span class="emoji">🪨</span>
+                        <span class="text">Rock</span>
+                    </button>
+                    <button class="choice-btn" data-choice="paper">
+                        <span class="emoji">📄</span>
+                        <span class="text">Paper</span>
+                    </button>
+                    <button class="choice-btn" data-choice="scissors">
+                        <span class="emoji">✂️</span>
+                        <span class="text">Scissors</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="game-result" id="game-result" style="display: none;">
+                <h3>Round Result</h3>
+                <div class="result-display">
+                    <div class="player-choice">
+                        <div class="choice-label">You</div>
+                        <div class="choice-emoji" id="your-choice"></div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="player-choice">
+                        <div class="choice-label">Opponent</div>
+                        <div class="choice-emoji" id="opponent-choice"></div>
+                    </div>
+                </div>
+                <div class="winner" id="winner-text"></div>
+            </div>
+        </div>
+
+        <div class="waiting-area" id="waiting-area">
+            <div class="spinner"></div>
+            <p>Waiting for players...</p>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>
